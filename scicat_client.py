@@ -74,8 +74,12 @@ if __name__ == "__main__":
 
     sub_list = subparsers.add_parser("list")
     sub_list.add_argument("-l", "--long", action="store_true", help="long format")
-    sub_list.add_argument("-f", "--full", type=bool, help="full format")
+    sub_list.add_argument("-f", "--full", action="store_true", help="full format")
+    sub_list.add_argument("-d", "--dataset", type=str, help="NOT IMPLEMENTED dataset id")
+    sub_list.add_argument("-s", "--search", type=str, help="search by dataset name", default=None)
+    #sub_list.add_argument("--filter", action=str, help="filters, in 'key=value,key=value' format")
     
+
 
     args = parser.parse_args()
     #parser.print_help()
@@ -86,26 +90,30 @@ if __name__ == "__main__":
     client = ScicatClient("https://dacat.psi.ch/api/v3")
     client.get_token(user=user)
 
-    output_fields = ["creationTime", "creationLocation", "datasetName"]
+    output_fields = ["creationTime", "creationLocation", "size", "datasetName"]
     output_fields_long = output_fields
     if args.action == "list":
         datasets = client.list_datasets()
-        #print(datasets)
-        if args.full:
-            pprint(datasets)
-        elif args.long:
-            #print("\t".join(len(output_fields) * ["{:25}", ]).format(*output_fields))
-            for dst in datasets:
+
+        for dst in datasets:
+            if "creationLocation" not in dst.keys():
+                continue
+            if args.search is not None:
+                if dst["datasetName"].find(args.search) == -1:
+                    continue
+            if args.full:
+                pprint(dst)
+            elif args.long:
                 try:
-                    print("\t".join((len(output_fields) + 1) * ["{}", ]).format(*([dst[field] for field in output_fields]), dst["datasetlifecycle"]["retrievable"]))
+                    print("\t".join((len(output_fields) + 1) * ["{}", ]).format(*([dst[field] for field in output_fields[:-1]]), dst["datasetlifecycle"]["retrievable"], dst["datasetName"]))
                 except:
                     print(sys.exc_info()[1])
 
-        else:
-            print("\t".join(len(output_fields) * ["{:25}", ]).format(*output_fields))
-            for dst in datasets:
-                print("\t".join(len(output_fields) * ["{}", ]).format(*[dst[field] for field in output_fields]))
-    
+            else:
+                print("\t".join(len(output_fields) * ["{:25}", ]).format(*output_fields))
+                for dst in datasets:
+                    print("\t".join(len(output_fields) * ["{}", ]).format(*[dst[field] for field in output_fields]))
+        
     #for dataset in datasets:
     #    #print(dataset)
     #    #res = client.list_dataset_lifecycle(dataset["pid"])
