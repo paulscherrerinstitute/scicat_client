@@ -7,13 +7,14 @@ import urllib
 import pprint
 
 
-logger = logging.basicConfig()
+logger = logging.getLogger('spam_application')
 
 
 class ScicatClient(object):
 
     def __init__(self, url):
         self.url = url
+        self.token_file = os.path.join(os.getenv("HOME"), ".scicat_token")
 
     def check_error(self, req):
         if req.status_code != requests.codes["ok"]:
@@ -22,7 +23,8 @@ class ScicatClient(object):
 
     def get_token(self, user=None, token_file=None):
         if not token_file:
-            token_file = os.path.join(os.getenv("HOME"), ".scicat_token")
+            token_file = self.token_file
+
         if os.path.isfile(token_file):
                 with open(token_file) as f:
                     try:
@@ -30,7 +32,19 @@ class ScicatClient(object):
                         self.token = token_json["access_token"]
                     except:
                         raise ValueError("File {} does not contain a valid token.".format(token_file))
+
+                # Basic token validity check                
+                """req = requests.get(self.url + "/Datasets/count")
+                print(req)
+                if req.status_code == 401:
+                    logger.warning("Token expired, removing token file and trying again")
+                    os.unlink(token_file)
+                    self.get_token(user=user, token_file=token_file)
                     return
+                else:
+                    self.check_error(req)
+                """
+                return
 
         passwd  = getpass.getpass("Please provide password for user {}: ".format(user))
         req = requests.post("https://dacat.psi.ch/auth/msad", json={"username":user, "password":passwd})
@@ -42,9 +56,18 @@ class ScicatClient(object):
         self.token = res["access_token"]
         with open(token_file, "w") as f:
             f.write(str(res))
+        return
 
-    def list_datasets(self, datasets=None):
-        req = requests.get(self.url + "/Datasets", params={"access_token": self.token})
+    def list_datasets(self, datasets=None, filters=None):
+        params = {"access_token": self.token}
+        # does not work???
+        # Datasets?filter={"filter":{"ownerGroup":"p17502"}}&access_token=
+        if filters is not None:
+            if isinstance(filters, dict):
+                params["filter"] = json.dumps({"filter":filters})
+
+        req = requests.get(self.url + "/Datasets", params=params)
+        print(dir(req), req.url)
         self.check_error(req)
         #print(req)
         #print(req.url)
@@ -79,12 +102,11 @@ if __name__ == "__main__":
     sub_list.add_argument("-s", "--search", type=str, help="search by dataset name", default=None)
     #sub_list.add_argument("--filter", action=str, help="filters, in 'key=value,key=value' format")
     
+    sub_dump = subparsers.add_parser("dump_filelist")
+    sub_list.add_argument("-g", "--group", type=str, help="Owner group")
 
 
     args = parser.parse_args()
-    #parser.print_help()
-
-    #print(args)
 
     user = os.getenv("USER")
     client = ScicatClient("https://dacat.psi.ch/api/v3")
@@ -110,12 +132,12 @@ if __name__ == "__main__":
                     print(sys.exc_info()[1])
 
             else:
-                print("\t".join(len(output_fields) * ["{:25}", ]).format(*output_fields))
-                for dst in datasets:
+                try:
                     print("\t".join(len(output_fields) * ["{}", ]).format(*[dst[field] for field in output_fields]))
-        
-    #for dataset in datasets:
-    #    #print(dataset)
-    #    #res = client.list_dataset_lifecycle(dataset["pid"])
-    #    if dataset["datasetlifecycle"]["retrievable"]:
-    #        print(dataset["datasetName"])
+                except:
+                    print(sys.exc_info()[1])
+
+    elif args.action == "dump_filelist":
+        datasets = client.list_datasets(filters={"ownerGroup":"p17502"})
+        for dataset in datasets:
+            pprint(dataset["ownerGroup"] + " " + dataset["datasetName"])
