@@ -142,6 +142,10 @@ if __name__ == "__main__":
 
 Examples:
 
+* Get a list of the first 10 datasets ingested
+
+python scicat_client.py list --limit 10
+
 * Filter out results (more on the query language here https://github.com/strongloop/loopback-filters)
 
 python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.getenv("USER") + """\"}}, {"datasetlifecycle.retrievable": true}]}'
