@@ -49,9 +49,9 @@ class ScicatClient(object):
 
         if os.path.isfile(self.token_file) and not overwrite:
             logger.info("Reading token from {}".format(self.token_file))
-            with open(self.token_file) as f:
+            with open(self.token_file, encoding="utf-8") as f:
                 try:
-                    token_json = json.loads(f.read().replace("'", "\""))
+                    token_json = json.load(f)
                     self.token = token_json["access_token"]
                 except:
                     logger.error(sys.exc_info())
@@ -67,7 +67,7 @@ class ScicatClient(object):
 
         self.token = res["access_token"]
         with open(self.token_file, "w") as f:
-            f.write(str(res))
+            json.dump(res, f)
         return
 
     def list_datasets(self, datasets=None, filters=None):
@@ -102,6 +102,7 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(usage="This is a test")
+    parser.add_argument("--test", help="")
 
     #parser.add_argument("action", type=str, help="boh", choices=["list", ])
     subparsers = parser.add_subparsers(dest="action")
@@ -119,7 +120,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    client = ScicatClient()
+    client = ScicatClient("https://dacat.psi.ch/api/v3")
     client.get_token()
 
     output_fields = ["creationTime", "creationLocation", "size", "datasetName"]
@@ -129,8 +130,11 @@ if __name__ == "__main__":
         datasets = client.list_datasets()
 
         for dst in datasets:
-            if "creationLocation" not in dst.keys():
-                continue
+            try:
+                if "creationLocation" not in dst.keys():
+                    continue
+            except:
+                print(dst)
             if args.search is not None:
                 if dst["datasetName"].find(args.search) == -1:
                     continue
