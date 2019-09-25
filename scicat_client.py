@@ -53,6 +53,17 @@ class ScicatClient(object):
             self.user = user
         
     def check_error(self, req):
+        """Simple routine to check requests errors
+        
+        Parameters
+        ----------
+        req : object
+            request object from requests
+        
+        Raises
+        ------
+        RuntimeError
+        """
         logger.debug(req.status_code, req.reason, req.content)
         if req.status_code != requests.codes["ok"]:
             if req.status_code == 401:
@@ -62,6 +73,14 @@ class ScicatClient(object):
                 raise RuntimeError("Got error {} from {}: {}".format(req.status_code, self.url, req.reason))
 
     def check_token(self):
+        """Checks token validity against a test REST API call
+        
+        Returns
+        -------
+        bool
+            True if the request is successful, false otherwise
+        """
+
         params = {"access_token": self.token}
         req = requests.get(self.url + "/Users/{}".format(self.id), params=params)
         logger.debug(req.content)
@@ -70,6 +89,19 @@ class ScicatClient(object):
         return req.ok
 
     def get_token(self, overwrite=False):
+        """Get a token, or verify existing token. MAximum number of tries set by self.max_auth_tries
+        
+        Parameters
+        ----------
+        overwrite : bool, optional
+            Overwrite existing token, by default False
+        
+        Returns
+        -------
+        Bool
+            True if success, False otherwise
+        
+        """
         if os.path.isfile(self.token_file) and not overwrite:
             logger.info("Reading token from {}".format(self.token_file))
             with open(self.token_file) as f:
