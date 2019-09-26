@@ -115,7 +115,7 @@ class ScicatClient(object):
             if self.check_token():
                 logger.debug(self.token)
                 logger.info("Found a valid token in {}".format(self.token_file))
-                return
+                return True
             else:
                 logger.info("Invalid or expired token in {}, regenerating".format(self.token_file))
 
@@ -140,7 +140,7 @@ class ScicatClient(object):
             return False
         else:
             logger.info("Token saved in {}".format(self.token_file))
-        return
+        return True
 
     def list_datasets(self, datasets=None, filters=None, order_field="creationTime", order="ASC", limit=-1):
         params = {"access_token": self.token}
@@ -154,9 +154,10 @@ class ScicatClient(object):
             params['filter']["where"] = json.loads(filters)
         
         params["filter"] = json.dumps(params["filter"])
-        print(params)
+        logger.debug(params)
         req = requests.get(self.url + "/Datasets", params=params, )
         self.check_error(req)
+        logger.info(req.url)
         res = json.loads(req.content)
         return res
 
@@ -226,11 +227,18 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
         sys.exit()
 
     client = ScicatClient(instance=args.instance)
+
     if not client.get_token():
+        logger.error("Cannot get a valid token")
         sys.exit(1)
 
     if args.action == "token":
         sys.exit()
+
+
+    output_fields = ["creationTime", "creationLocation", "size", "datasetName"]
+    output_fields_long = output_fields[:-1] + ["owner", "datasetName"] 
+
 
     if args.action == "list":
         datasets = client.list_datasets(filters=args.filter, limit=args.limit)
