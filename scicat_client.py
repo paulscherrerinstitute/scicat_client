@@ -14,7 +14,7 @@ logger = logging.getLogger('scicat client')
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 # create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('[%(asctime)s][%(name)s][%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
@@ -53,6 +53,17 @@ class ScicatClient(object):
             self.user = user
         
     def check_error(self, req):
+        """Simple routine to check requests errors
+        
+        Parameters
+        ----------
+        req : object
+            request object from requests
+        
+        Raises
+        ------
+        RuntimeError
+        """
         logger.debug(req.status_code, req.reason, req.content)
         if req.status_code != requests.codes["ok"]:
             if req.status_code == 401:
@@ -62,6 +73,14 @@ class ScicatClient(object):
                 raise RuntimeError("Got error {} from {}: {}".format(req.status_code, self.url, req.reason))
 
     def check_token(self):
+        """Checks token validity against a test REST API call
+        
+        Returns
+        -------
+        bool
+            True if the request is successful, false otherwise
+        """
+
         params = {"access_token": self.token}
         req = requests.get(self.url + "/Users/{}".format(self.id), params=params)
         logger.debug(req.content)
@@ -70,6 +89,19 @@ class ScicatClient(object):
         return req.ok
 
     def get_token(self, overwrite=False):
+        """Get a token, or verify existing token. MAximum number of tries set by self.max_auth_tries
+        
+        Parameters
+        ----------
+        overwrite : bool, optional
+            Overwrite existing token, by default False
+        
+        Returns
+        -------
+        Bool
+            True if success, False otherwise
+        
+        """
         if os.path.isfile(self.token_file) and not overwrite:
             logger.info("Reading token from {}".format(self.token_file))
             with open(self.token_file, encoding="utf-8") as f:
@@ -79,14 +111,17 @@ class ScicatClient(object):
                     self.id = token_json["userId"]
                 except:
                     logger.error(sys.exc_info())
-                    raise ValueError("File {} does not contain a valid token.".format(self.token_file))
+                    raise ValueError("File {} does not contain a valid json-formatted token.".format(self.token_file))
             if self.check_token():
-                return
+                logger.debug(self.token)
+                logger.info("Found a valid token in {}".format(self.token_file))
+                return True
+            else:
+                logger.info("Invalid or expired token in {}, regenerating".format(self.token_file))
 
         if self.current_auth_try > self.max_auth_tries:
             raise RuntimeError("Cannot get a valid token, please check your permissions")
 
-        logger.debug(self.token)
         passwd  = getpass.getpass("Please provide password for user {}: ".format(self.user))
         logger.debug(self.instances[self.instance] + "/auth/msad")
         req = requests.post(self.instances[self.instance] + "auth/msad", json={"username":self.user, "password":passwd})
@@ -96,13 +131,17 @@ class ScicatClient(object):
         res = json.loads(req.content)
 
         self.token = res["access_token"]
+        self.id = res["userId"]
         with open(self.token_file, "w") as f:
 #            json.dump(res, f)
             f.write(str(res))
         self.current_auth_try += 1
 
-        self.check_token()
-        return
+        if not self.check_token():
+            return False
+        else:
+            logger.info("Token saved in {}".format(self.token_file))
+        return True
 
     def list_datasets(self, datasets=None, filters=None, order_field="creationTime", order="ASC", limit=-1):
         params = {"access_token": self.token}
@@ -116,9 +155,10 @@ class ScicatClient(object):
             params['filter']["where"] = json.loads(filters)
         
         params["filter"] = json.dumps(params["filter"])
-        print(params)
+        logger.debug(params)
         req = requests.get(self.url + "/Datasets", params=params, )
         self.check_error(req)
+        logger.info(req.url)
         res = json.loads(req.content)
         return res
 
@@ -159,6 +199,9 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
     #parser.add_argument("action", type=str, help="boh", choices=["list", ])
     subparsers = parser.add_subparsers(dest="action")
 
+    sub_list = subparsers.add_parser("token", help="Generate a token")
+
+
     sub_list = subparsers.add_parser("list")
     sub_list.add_argument("--long", action="store_true", help="long format")
     sub_list.add_argument("--full", action="store_true", help="full format")
@@ -177,13 +220,26 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
 
     if args.verbose:
         logger.setLevel("DEBUG")
+    else:
+        logger.setLevel("INFO")
 
+    if args.action is None:
+        parser.print_help()
+        sys.exit()
 
     client = ScicatClient(instance=args.instance)
-    client.get_token()
+
+    if not client.get_token():
+        logger.error("Cannot get a valid token")
+        sys.exit(1)
+
+    if args.action == "token":
+        sys.exit()
+
 
     output_fields = ["creationTime", "creationLocation", "size", "datasetName"]
     output_fields_long = output_fields[:-1] + ["owner", "datasetName"] 
+
 
     if args.action == "list":
         datasets = client.list_datasets(filters=args.filter, limit=args.limit)
