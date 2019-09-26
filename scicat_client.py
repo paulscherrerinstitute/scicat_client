@@ -104,9 +104,9 @@ class ScicatClient(object):
         """
         if os.path.isfile(self.token_file) and not overwrite:
             logger.info("Reading token from {}".format(self.token_file))
-            with open(self.token_file) as f:
+            with open(self.token_file, encoding="utf-8") as f:
                 try:
-                    token_json = json.loads(f.read().replace("'", "\""))
+                    token_json = json.load(f)
                     self.token = token_json["access_token"]
                     self.id = token_json["userId"]
                 except:
@@ -133,6 +133,7 @@ class ScicatClient(object):
         self.token = res["access_token"]
         self.id = res["userId"]
         with open(self.token_file, "w") as f:
+#            json.dump(res, f)
             f.write(str(res))
         self.current_auth_try += 1
 
