@@ -1,0 +1,25 @@
+
+package:
+  name: scicat_client
+  #version: 0.0.1
+  version: "{{ load_setup_py_data().version }}"
+  
+source:
+  path: ../
+
+build:
+  noarch: python
+  entry_points:
+    - scicat-client = scicat_client.client:cli
+  
+requirements:
+  build:
+    - python
+  run:
+    - python
+    - requests
+ 
+
+about:
+#  home: https://git.psi.ch/sf_daq/data-api_python
+  license: GPLv3

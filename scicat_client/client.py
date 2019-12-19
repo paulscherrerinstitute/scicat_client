@@ -133,8 +133,7 @@ class ScicatClient(object):
         self.token = res["access_token"]
         self.id = res["userId"]
         with open(self.token_file, "w") as f:
-#            json.dump(res, f)
-            f.write(str(res))
+            json.dump(res, f)
         self.current_auth_try += 1
 
         if not self.check_token():
@@ -158,7 +157,7 @@ class ScicatClient(object):
         logger.debug(params)
         req = requests.get(self.url + "/Datasets", params=params, )
         self.check_error(req)
-        logger.info(req.url)
+        logger.debug(req.url)
         res = json.loads(req.content)
         return res
 
@@ -173,8 +172,7 @@ class ScicatClient(object):
         return res
 
     
-if __name__ == "__main__":
-
+def cli():
     import argparse
     from pprint import pprint
     import sys
@@ -293,3 +291,6 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
 
     else:
         parser.print_help()
+
+if __name__ == "__main__":
+    cli()
