@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="scicat_client",
-    version="0.0.1",
+    version="0.1.0",
     author="Paul Scherrer Institute",
     author_email="science-it@psi.ch",
     description=("Interface to PSI's SciCat"),
