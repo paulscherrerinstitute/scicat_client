@@ -281,7 +281,8 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
                         logger.error("{} produced this error: {}".format(dst["datasetName"], sys.exc_info()))
     
     elif args.action == "dump_filelist":
-        datasets = client.list_datasets(filters={'ownerGroup':args.group})
+        logger.debug(args)
+        datasets = client.list_datasets(filters=json.dumps({'ownerGroup':args.group}))
         for dataset in datasets:
             blocks = client.list_dataset_blocks(dataset["pid"])
             for block in blocks:

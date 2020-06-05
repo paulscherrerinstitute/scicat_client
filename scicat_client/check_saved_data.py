@@ -1,4 +1,4 @@
-import scicat_client
+import client
 import os
 from pprint import pprint
 
