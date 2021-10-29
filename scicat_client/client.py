@@ -298,10 +298,8 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
     elif args.action == "dump_filelist":
         logger.debug(args)
         datasets = client.list_datasets(filters=json.dumps({'ownerGroup':args.group}))
-        print(datasets)
         for dataset in datasets:
             blocks = client.list_dataset_blocks(dataset["pid"])
-            print(blocks)
             for block in blocks:
                 for f in block["dataFileList"]:
                     if f["path"].find("__checksum_filename") == -1:

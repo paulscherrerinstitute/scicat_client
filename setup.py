@@ -19,7 +19,7 @@ setup(
     keywords="",
 #    url="https://github.com/paulscherrerinstitute/data_api_python",
     packages=["scicat_client", ],
-    long_description=read('README.md'),
+#    long_description=read('README.md'),
     entry_points={
         'console_scripts': ['scicat_client=scicat_client.client:cli']
     }
