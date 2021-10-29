@@ -64,7 +64,7 @@ class ScicatClient(object):
         ------
         RuntimeError
         """
-        logger.debug(req.status_code, req.reason, req.content)
+        logger.debug("{} {} {}".format(req.status_code, req.reason, req.content))
         if req.status_code != requests.codes["ok"]:
             if req.status_code == 401:
                 self.get_token(overwrite=True)
@@ -103,7 +103,7 @@ class ScicatClient(object):
         
         """
         if os.path.isfile(self.token_file) and not overwrite:
-            logger.info("Reading token from {}".format(self.token_file))
+            logger.debug("Reading token from {}".format(self.token_file))
             with open(self.token_file, encoding="utf-8") as f:
                 try:
                     token_json = json.load(f)
@@ -114,10 +114,10 @@ class ScicatClient(object):
                     raise ValueError("File {} does not contain a valid json-formatted token.".format(self.token_file))
             if self.check_token():
                 logger.debug(self.token)
-                logger.info("Found a valid token in {}".format(self.token_file))
+                logger.debug("Found a valid token in {}".format(self.token_file))
                 return True
             else:
-                logger.info("Invalid or expired token in {}, regenerating".format(self.token_file))
+                logger.debug("Invalid or expired token in {}, regenerating".format(self.token_file))
 
         if self.current_auth_try > self.max_auth_tries:
             raise RuntimeError("Cannot get a valid token, please check your permissions")
@@ -139,10 +139,10 @@ class ScicatClient(object):
         if not self.check_token():
             return False
         else:
-            logger.info("Token saved in {}".format(self.token_file))
+            logger.debug("Token saved in {}".format(self.token_file))
         return True
 
-    def list_datasets(self, datasets=None, filters=None, order_field="creationTime", order="ASC", limit=-1):
+    def list_datasets(self, datasets=None, dataset_name=None, filters=None, order_field="creationTime", order="ASC", limit=-1, full_info=False):
         params = {"access_token": self.token}
         params["filter"] = {}
         params["filter"]["order"] = "{} {}".format(order_field, order)
@@ -152,13 +152,20 @@ class ScicatClient(object):
         # Datasets?filter={"filter":{"ownerGroup":"p17502"}}&access_token=
         if filters is not None:
             params['filter']["where"] = json.loads(filters)
-        
+        elif dataset_name is not None:
+            params['filter']['where'] = {"datasetName": {"eq": dataset_name}}
+
         params["filter"] = json.dumps(params["filter"])
         logger.debug(params)
         req = requests.get(self.url + "/Datasets", params=params, )
         self.check_error(req)
         logger.debug(req.url)
         res = json.loads(req.content)
+        
+        if full_info:
+            for i, dataset in enumerate(res):
+                res_orig_files = self.list_dataset_origblocks(dataset['pid'])
+                res[i]['files'] = res_orig_files
         return res
 
     def list_dataset_lifecycle(self, dataset_id):
@@ -168,9 +175,17 @@ class ScicatClient(object):
 
     def list_dataset_blocks(self, dataset_id):
         req = requests.get(self.url + "/Datasets/{}/datablocks".format(urllib.parse.quote(dataset_id, safe="")), params={"access_token": self.token})
+        logger.debug(req.url)
+        self.check_error(req)
         res = json.loads(req.content)
         return res
 
+    def list_dataset_origblocks(self, dataset_id):
+        req = requests.get(self.url + "/Datasets/{}/origdatablocks".format(urllib.parse.quote(dataset_id, safe="")), params={"access_token": self.token})
+        logger.debug(req.url)
+        self.check_error(req)
+        res = json.loads(req.content)
+        return res
     
 def cli():
     import argparse
@@ -240,7 +255,7 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
 
 
     if args.action == "list":
-        datasets = client.list_datasets(filters=args.filter, limit=args.limit)
+        datasets = client.list_datasets(filters=args.filter, dataset_name=args.search, limit=args.limit, full_info=args.full)
 
         logger.debug(datasets)
 

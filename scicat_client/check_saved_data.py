@@ -20,12 +20,13 @@ if __name__ == "__main__":
     pgroup = args.pgroup
     datadir = args.datadir
 
-    includes = [".h5"]
+    #includes = [".h5"]
     
     # raw
     scicat_files = {}
     with open(filelist) as f:
         for line in f:
+            line = line.replace("//", "/")
             scicat_files[line.strip("\n")] = 1
 
     unsaved_files = []
@@ -33,14 +34,8 @@ if __name__ == "__main__":
     for dirpath, dirnames, filenames in os.walk(os.path.join(datadir, "raw")):
         for f in filenames:
             full_f = os.path.join(dirpath, f)
+            full_f = full_f.replace("//", "/")
             proceed = False
-            
-            for include in includes:
-                if full_f.find(include) != -1:
-                    proceed = True
-                    continue
-            if not proceed:
-                continue
             
             if full_f in scicat_files:
                 _ = scicat_files.pop(full_f)
@@ -51,12 +46,7 @@ if __name__ == "__main__":
         for f in filenames:
             full_f = os.path.join(dirpath, f)
             proceed = False
-            for include in includes:
-                if full_f.find(include) != -1:
-                    proceed = True
-                    continue
-            if not proceed:
-                continue
+            
             if full_f in scicat_files:
                 _ = scicat_files.pop(full_f)
             else:
