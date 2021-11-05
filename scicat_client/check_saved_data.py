@@ -4,8 +4,7 @@ from pprint import pprint
 import io
 
 
-if __name__ == "__main__":
-
+def cli():
     import argparse
     from pprint import pprint
     import sys
@@ -63,5 +62,6 @@ if __name__ == "__main__":
     
     
     
-    
+if __name__ == "__main__":
+    cli()    
     
