@@ -1,6 +1,5 @@
-import client
+from . import client
 import os
-import scicat_client
 import json
 import sys
 import argparse

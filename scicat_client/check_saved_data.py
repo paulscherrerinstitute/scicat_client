@@ -1,4 +1,4 @@
-import client
+from . import client
 import os
 from pprint import pprint
 import io
