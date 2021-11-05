@@ -12,7 +12,8 @@ build:
   entry_points:
     - scicat-client = scicat_client.client:cli
     - scicat-verify = scicat_client.verify_data:cli
-  
+    - scicat-check = scicat_client.check_saved_data:cli
+
 requirements:
   build:
     - python
