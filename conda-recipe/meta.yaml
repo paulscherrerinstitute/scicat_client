@@ -11,6 +11,7 @@ build:
   noarch: python
   entry_points:
     - scicat-client = scicat_client.client:cli
+    - scicat-verify = scicat_client.verify_data:cli
   
 requirements:
   build:
@@ -21,5 +22,8 @@ requirements:
  
 
 about:
-#  home: https://git.psi.ch/sf_daq/data-api_python
+  home: https://github.com/paulscherrerinstitute/scicat_client
   license: GPLv3
+  summary: a simple Scicat python client
+  description: |
+    This package provides a simple python interface to SciCat (https://scicatproject.github.io/)

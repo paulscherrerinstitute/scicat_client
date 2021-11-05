@@ -1,5 +1,3 @@
-# TODO sorted output
-
 import requests
 import json
 import getpass
@@ -187,7 +185,7 @@ class ScicatClient(object):
         res = json.loads(req.content)
         return res
     
-def cli():
+def cli(raw_args=None):
     import argparse
     from pprint import pprint
     import sys
@@ -229,7 +227,7 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
     sub_dump.add_argument("-g", "--group", type=str, help="Owner group")
 
 
-    args = parser.parse_args()
+    args = parser.parse_args(raw_args)
 
     if args.verbose:
         logger.setLevel("DEBUG")
