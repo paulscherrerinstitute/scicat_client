@@ -2,6 +2,7 @@ from . import client
 import os
 from pprint import pprint
 import io
+import sys
 
 
 def cli():
@@ -30,14 +31,15 @@ def cli():
     sys.stdout = new_stdout    # f = 
     # sys.stdout = f
     client.cli(["dump_filelist", "-g", pgroup])
-    output = new_stdout.getvalue()
+    output = new_stdout.getvalue().split("\n")
     sys.stdout = orig_stdout
 
+    #rint(output)
     scicat_files = {}
     # with open(filelist) as f:
     for line in output:
         line = line.replace("//", "/")
-        scicat_files[line.strip("\n")] = 1
+        scicat_files[line.strip("\n").strip(" ")] = 1
 
     unsaved_files = []
     
@@ -46,7 +48,7 @@ def cli():
             full_f = os.path.join(dirpath, f)
             full_f = full_f.replace("//", "/")
             proceed = False
-            
+
             if full_f in scicat_files:
                 _ = scicat_files.pop(full_f)
             else:

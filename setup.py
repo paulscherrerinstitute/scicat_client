@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="scicat_client",
-    version="0.2.1",
+    version="0.2.2",
     author="Paul Scherrer Institute",
     author_email="science-it@psi.ch",
     description=("Interface to PSI's SciCat"),
@@ -21,6 +21,10 @@ setup(
     packages=["scicat_client", ],
 #    long_description=read('README.md'),
     entry_points={
-        'console_scripts': ['scicat_client=scicat_client.client:cli']
+        'console_scripts': [
+            'scicat-client=scicat_client.client:cli',
+            'scicat-check=scicat_client.check_saved_data:cli',
+            'scicat-verify=scicat_client.verify_data:cli'
+        ]
     }
 )
