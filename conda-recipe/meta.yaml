@@ -17,6 +17,7 @@ build:
 requirements:
   build:
     - python
+    - requests
   run:
     - python
     - requests

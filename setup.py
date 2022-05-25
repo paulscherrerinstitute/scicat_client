@@ -26,5 +26,9 @@ setup(
             'scicat-check=scicat_client.check_saved_data:cli',
             'scicat-verify=scicat_client.verify_data:cli'
         ]
-    }
+    },
+    install_requires=[
+        'requests',
+    ]
+
 )
