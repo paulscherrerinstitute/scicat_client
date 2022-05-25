@@ -12,7 +12,7 @@ logger = logging.getLogger('scicat client')
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 # create formatter and add it to the handlers
-formatter = logging.Formatter('[%(asctime)s][%(name)s][%(levelname)s] %(message)s')
+formatter = logging.Formatter('[%(asctime)s][%(name)s][%(funcName)s][%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
@@ -80,8 +80,8 @@ class ScicatClient(object):
         """
 
         params = {"access_token": self.token}
-        req = requests.get(self.url + "/Users/{}".format(self.id), params=params)
-        logger.debug(req.content)
+        req = requests.get(self.url + "/Proposals/count", params=params)
+        logger.debug(f"{req.content}, {params}, {req.url}")
         self.current_auth_try = 0
         logger.debug(req.ok)
         return req.ok
@@ -106,12 +106,12 @@ class ScicatClient(object):
                 try:
                     token_json = json.load(f)
                     self.token = token_json["access_token"]
-                    self.id = token_json["userId"]
+                    # self.id = token_json["userId"]
                 except:
-                    logger.error(sys.exc_info())
+                    logger.error("get_token:", sys.exc_info())
                     raise ValueError("File {} does not contain a valid json-formatted token.".format(self.token_file))
             if self.check_token():
-                logger.debug(self.token)
+                logger.debug("get_token", self.token)
                 logger.debug("Found a valid token in {}".format(self.token_file))
                 return True
             else:
@@ -120,18 +120,24 @@ class ScicatClient(object):
         if self.current_auth_try > self.max_auth_tries:
             raise RuntimeError("Cannot get a valid token, please check your permissions")
 
-        passwd  = getpass.getpass("Please provide password for user {}: ".format(self.user))
-        logger.debug(self.instances[self.instance] + "/auth/msad")
-        req = requests.post(self.instances[self.instance] + "auth/msad", json={"username":self.user, "password":passwd})
-       
-        if req.status_code != requests.codes['ok']:
-            raise RuntimeError("Request returned error {}: {}".format(req.status_code, req.reason))
-        res = json.loads(req.content)
+        # passwd  = getpass.getpass("Please provide password for user {}: ".format(self.user))
+        # logger.debug(self.instances[self.instance] + "/auth/msad")
+        # req = requests.post(self.instances[self.instance] + "auth/msad", json={"username":self.user, "password":passwd})
+        # print('-', req.url)
+        print("Please retrieve your user token here: https://discovery.psi.ch/user , field 'Catamel token', and pass it to the command line with the --token option")
+        return False
 
-        self.token = res["access_token"]
-        self.id = res["userId"]
+        # if req.status_code != requests.codes['ok']:
+        #     raise RuntimeError("Request returned error {}: {}".format(req.status_code, req.reason))
+        # res = json.loads(req.content)
+
+    def store_token(self, access_token):
+
+        self.token = access_token
+        logger.debug(f"Token stored in self.token: {self.token}")
+        # self.id = res["userId"]
         with open(self.token_file, "w") as f:
-            json.dump(res, f)
+             json.dump({'access_token': self.token}, f)
         self.current_auth_try += 1
 
         if not self.check_token():
@@ -205,12 +211,13 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("--instance", type=str, help="SciCat instance", choices=["prod", "qa"], default="prod")
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--token", "-t", help="SciCat user token", type=str)
 
 
     #parser.add_argument("action", type=str, help="boh", choices=["list", ])
     subparsers = parser.add_subparsers(dest="action")
 
-    sub_list = subparsers.add_parser("token", help="Generate a token")
+    # sub_list = subparsers.add_parser("token", help="Generate a token")
 
 
     sub_list = subparsers.add_parser("list")
@@ -240,12 +247,16 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
 
     client = ScicatClient(instance=args.instance)
 
-    if not client.get_token():
-        logger.error("Cannot get a valid token")
-        sys.exit(1)
+    # if args.action == "token":
+        # sys.exit()
 
-    if args.action == "token":
-        sys.exit()
+    if args.token is None:
+        if not client.get_token():
+            # logger.error("Cannot get a valid token")
+            sys.exit(1)
+    else:
+        client.store_token(args.token)
+
 
 
     output_fields = ["creationTime", "creationLocation", "size", "datasetName"]
