@@ -141,6 +141,7 @@ class ScicatClient(object):
         self.current_auth_try += 1
 
         if not self.check_token():
+            logger.debug("Invalid token")
             return False
         else:
             logger.debug("Token saved in {}".format(self.token_file))
@@ -231,7 +232,7 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
     
     
     sub_dump = subparsers.add_parser("dump_filelist")
-    sub_dump.add_argument("-g", "--group", type=str, help="Owner group")
+    sub_dump.add_argument("-g", "--group", type=str, help="Owner group", required=True)
 
 
     args = parser.parse_args(raw_args)
@@ -243,7 +244,7 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
 
     if args.action is None:
         parser.print_help()
-        sys.exit()
+        return 1
 
     client = ScicatClient(instance=args.instance)
 
@@ -253,10 +254,11 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
     if args.token is None:
         if not client.get_token():
             # logger.error("Cannot get a valid token")
-            sys.exit(1)
+            return 1
     else:
-        client.store_token(args.token)
-
+        if not client.store_token(args.token):
+            print("[ERROR] Invalid token. Please retrieve your user token here: https://discovery.psi.ch/user , field 'Catamel token', and pass it to the command line with the --token option")
+            return 1
 
 
     output_fields = ["creationTime", "creationLocation", "size", "datasetName"]
@@ -316,6 +318,10 @@ python scicat_client.py list --filter '{"and": [{"owner": {"eq": \"""" + os.gete
 
     else:
         parser.print_help()
+        return 1
+    return 0
+
 
 if __name__ == "__main__":
-    cli()
+    ret = cli()
+    sys.exit(ret)
